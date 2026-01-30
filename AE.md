@@ -15,7 +15,7 @@ Please note how Docker's package name may vary depending on your OS version and 
 To obtain CombiSan, clone its repository:
 
 ```
-git clone --recursive git@github.com:vusec/combisan.git
+git clone --recursive https://github.com/vusec/combisan.git
 cd combisan
 ```
 Then compile LLVM with the provided script:

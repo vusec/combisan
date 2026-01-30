@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y openssh-client nano gdb
 #valgrind libc++-dev libc++abi-dev
 
 #Add the Key to the ssh client and download combisan
-RUN git clone --recursive git@github.com:vusec/combisan.git
+RUN git clone --recursive https://github.com/vusec/combisan.git
 
 #Build LLVM
 RUN apt-get install -y cmake ninja-build
