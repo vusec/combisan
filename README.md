@@ -3,6 +3,10 @@ CombiSan is a sanitizer that combines detection of addressability issues, use-of
 
 Our paper "CombiSan: Unifying Software Sanitizers for Comprehensive Fuzzing" has been accepted for publication at USENIX Security 2026.
 
+#### Artifact Evaluation
+
+If you are evaluating this artifact, please refer to `AE.md` for more detailed instructions on how to perform the proposed experiments.
+
 ## Building LLVM
 
 To build CombiSan's custom LLVM version, first clone the repository:
