@@ -8,7 +8,7 @@ Our paper "CombiSan: Unifying Software Sanitizers for Comprehensive Fuzzing" has
 To build CombiSan's custom LLVM version, first clone the repository:
 
 ```
-git clone --recursive git@github.com:vusec/combisan.git
+git clone --recursive https://github.com/vusec/combisan.git
 cd combisan
 ```
 Then compile LLVM with its standard procedure
