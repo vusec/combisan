@@ -1,0 +1,38 @@
+How to install:
+
+$ ./configure
+$ make install
+$ hash
+$ ctorrent -h
+
+If SSL support is not found, the public-domain SHA1 code will be used.
+To force the use of this code, specify:
+  --with-ssl=no
+as a parameter to the configure script.
+To give configure a hint about where to find SSL on your system, specify:
+  --with-ssl=DIR
+where DIR is the common directory under which sha.h and the SSL libraries
+are located.  For example, if the files are located at:
+  /opt/include/openssl/sha.h
+  /opt/lib/libcrypto.a
+use:
+  --with-ssl=/opt
+There are several combinations of subdirectories that will be tried by
+the configure script.  If all else fails, create symbolic links for
+sha.h and the applicable library (libssl.a, libcrypto.a, libcrypt.a, or
+libmd.a) in a single directory and specify that.
+
+Or set the CPPFLAGS environment variable to "-Idir" (where "dir" is the
+directory in which sha.h resides) and the LDFLAGS environment variable
+to "-Ldir" (where "dir" is the directory in which the library containing
+SHA1 support resides), then re-run configure.
+
+Check the documentation or man page for your shell to determine how to
+set an environment variable.
+Example using csh/tcsh:
+  setenv CPPFLAGS "-I/usr/local/include"
+
+Hint:  You can use the "strings" command to help determine whether SHA1
+support is present in a library, as in:
+  strings libcrypto.a | grep SHA1_Init
+

@@ -1,0 +1,93 @@
+67552   libxml2
+docker run -it n132/arvo:67552-vul bash d77456acda3f
+docker cp d77456acda3f:/src/. ./src
+docker cp d77456acda3f:/tmp/poc ./poc
+
+# CombiSan
+export CC=/home/ubuntu/combisan/llvm-project/build/bin/clang
+export CXX=/home/ubuntu/combisan/llvm-project/build/bin/clang++
+export CFLAGS="-g -O1 -fsanitize=address -fsanitize-recover=address -Wno-error=frame-larger-than -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
+export CXXFLAGS="-g -O1 -fsanitize=address -fsanitize-recover=address -Wno-error=frame-larger-than -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
+export ASAN_OPTIONS="halt_on_error=0"
+
+# MSan
+export CC=clang
+export CXX=clang++
+export CFLAGS="-O1 -fsanitize=memory -fsanitize-memory-track-origins -Wno-error=frame-larger-than -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
+export CXXFLAGS="-O1 -fsanitize=memory -fsanitize-memory-track-origins -Wno-error=frame-larger-than -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
+
+
+sudo apt-get install pkg-config autoconf-archive liblzma-dev
+
+cd src/libfuzzer
+./build.sh
+# out: /home/ubuntu/combisan/arvo/67552/src/libfuzzer/libfuzzer.a
+
+cd src/libxml2
+./autogen.sh     --disable-shared     --without-debug     --without-http     --without-python
+make -j32
+cd fuzz
+make fuzz.o 
+make api.o
+
+mkdir out
+ $CXX $CXXFLAGS \
+        api.o fuzz.o \
+        -o out/api \
+        /home/ubuntu/combisan/arvo/67552/src/libfuzzer/libFuzzer.a \
+        ../.libs/libxml2.a -Wl,-Bstatic -lz -llzma -Wl,-Bdynamic
+
+
+==2897914==WARNING: MemorySanitizer: use-of-uninitialized-value
+    #0 0x55555563c41f in xmlFuzzCheckMallocFailure (/home/ubuntu/combisan/arvo/67552/src/libxml2/fuzz/out/api+0xe841f) (BuildId: 02b0111db1bc126b41dc0d8f3b948cd41f52475d)
+    #1 0x55555563662e in LLVMFuzzerTestOneInput (/home/ubuntu/combisan/arvo/67552/src/libxml2/fuzz/out/api+0xe262e) (BuildId: 02b0111db1bc126b41dc0d8f3b948cd41f52475d)
+    #2 0x555555656588 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /home/ubuntu/combisan/arvo/67552/src/libfuzzer/./FuzzerLoop.cpp:611:15
+    #3 0x55555563f972 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /home/ubuntu/combisan/arvo/67552/src/libfuzzer/./FuzzerDriver.cpp:324:6
+    #4 0x555555645001 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /home/ubuntu/combisan/arvo/67552/src/libfuzzer/./FuzzerDriver.cpp:860:9
+    #5 0x55555563f662 in main /home/ubuntu/combisan/arvo/67552/src/libfuzzer/./FuzzerMain.cpp:20:10
+    #6 0x7ffff7a7cd8f in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+    #7 0x7ffff7a7ce3f in __libc_start_main csu/../csu/libc-start.c:392:3
+    #8 0x55555558cb34 in _start (/home/ubuntu/combisan/arvo/67552/src/libxml2/fuzz/out/api+0x38b34) (BuildId: 02b0111db1bc126b41dc0d8f3b948cd41f52475d)
+
+  Uninitialized value was created by an allocation of 'cur' in the stack frame of function 'xmlSearchNsByHref'
+    #0 0x555555763370 in xmlSearchNsByHref (/home/ubuntu/combisan/arvo/67552/src/libxml2/fuzz/out/api+0x20f370) (BuildId: 02b0111db1bc126b41dc0d8f3b948cd41f52475d)
+
+==2902234==ERROR: AddressSanitizer: Combi-MSan-CVEmode on address 0x7fffffffd7e8 at pc 0x55555579299c bp 0x7fffffffd7d0 sp 0x7fffffffd7c8
+READ of size 8 at 0x7fffffffd7e8 thread T0
+    #0 0x55555579299b in xmlSearchNsByHref /home/ubuntu/combisan/arvo/67552/src/libxml2/tree.c:6186:12
+    #1 0x5555556d148a in LLVMFuzzerTestOneInput /home/ubuntu/combisan/arvo/67552/src/libxml2/fuzz/api.c:2095:22
+    #2 0x5555556ee7d8 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /home/ubuntu/combisan/arvo/67552/src/libfuzzer/./FuzzerLoop.cpp:611:15
+    #3 0x5555556d7bc2 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /home/ubuntu/combisan/arvo/67552/src/libfuzzer/./FuzzerDriver.cpp:324:6
+    #4 0x5555556dd251 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /home/ubuntu/combisan/arvo/67552/src/libfuzzer/./FuzzerDriver.cpp:860:9
+    #5 0x5555556d78b2 in main /home/ubuntu/combisan/arvo/67552/src/libfuzzer/./FuzzerMain.cpp:20:10
+    #6 0x7ffff7a68d8f in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+    #7 0x7ffff7a68e3f in __libc_start_main csu/../csu/libc-start.c:392:3
+    #8 0x5555555e0c24 in _start (/home/ubuntu/combisan/arvo/67552/src/libxml2/fuzz/out/api+0x8cc24)
+
+Address 0x7fffffffd7e8 is located in stack of thread T0
+SUMMARY: AddressSanitizer: Combi-MSan-CVEmode /home/ubuntu/combisan/arvo/67552/src/libxml2/tree.c:6186:12 in xmlSearchNsByHref
+Shadow bytes around the buggy address:
+  0x7fffffffd680: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x7fffffffd6c0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x7fffffffd700: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x7fffffffd740: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x7fffffffd780: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x7fffffffd7c0: 00 00 00 00 00 00 00 00 00 00[aa]aa 00 00 00 00
+  0x7fffffffd800: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x7fffffffd840: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x7fffffffd880: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x7fffffffd8c0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x7fffffffd900: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+Shadow byte legend (one shadow byte represents 4 application bytes):
+  Addressable (valid):          00
+  Fully redzone:                55
+  Fully uninitialized:          aa
+  1 valid 3 redzone:            54
+  2 valid 2 redzone:            50
+  3 valid 1 redzone:            40
+  1 uninit 3 redzone:           56
+  2 uninit 2 redzone:           5a
+  3 uninit 1 redzone:           6a
+  1 valid 3 uninit:             a8
+  2 valid 2 uninit:             a0
+  3 valid 1 uninit:             80

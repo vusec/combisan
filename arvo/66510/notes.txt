@@ -1,0 +1,100 @@
+66510   zstd    
+docker run -it n132/arvo:67552-vul bash efa0e6f7540c
+
+# CombiSan
+export CC=/home/ubuntu/combisan/llvm-project/build/bin/clang
+export CXX=/home/ubuntu/combisan/llvm-project/build/bin/clang++
+export CFLAGS="-g -O1 -fsanitize=address -fsanitize-recover=address -Wno-error=frame-larger-than -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
+export CXXFLAGS="-g -O1 -fsanitize=address -fsanitize-recover=address -Wno-error=frame-larger-than -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
+export ASAN_OPTIONS="halt_on_error=0"
+
+# MSan
+export CC=clang
+export CXX=clang++
+export CFLAGS="-O1 -fsanitize=memory -fsanitize-memory-track-origins -Wno-error=frame-larger-than -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
+export CXXFLAGS="-O1 -fsanitize=memory -fsanitize-memory-track-origins -Wno-error=frame-larger-than -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
+
+docker cp efa0e6f7540c:/src/. ./src
+docker cp efa0e6f7540c:/tmp/poc ./poc
+
+cd src/zstd/tests/fuzz/
+./fuzz.py build all
+./dictionary_stream_round_trip ../../../../poc
+
+
+==2903931==WARNING: MemorySanitizer: use-of-uninitialized-value
+    #0 0x5555558552c5 in ZSTD_rawLiteralsCost /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_opt.c:285:28
+    #1 0x55555584c4ac in ZSTD_compressBlock_opt_generic /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_opt.c:1221:62
+    #2 0x55555584c4ac in ZSTD_compressBlock_opt2 /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_opt.c:1455:12
+    #3 0x5555558526ba in ZSTD_compressBlock_btultra2 /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_opt.c:1538:12
+    #4 0x555555686042 in ZSTD_buildSeqStore /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:3357:26
+    #5 0x555555654fbb in ZSTD_compressBlock_targetCBlockSize /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:4404:24
+    #6 0x555555654fbb in ZSTD_compress_frameChunk /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:4488:25
+    #7 0x555555654fbb in ZSTD_compressContinue_internal /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:4668:30
+    #8 0x55555566e621 in ZSTD_compressContinue_public /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:4692:12
+    #9 0x55555566e621 in ZSTD_compressStream_generic /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:6041:29
+    #10 0x55555566a6c8 in ZSTD_compressStream2 /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:6364:5
+    #11 0x555555a921eb in compress /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/dictionary_stream_round_trip.c:94:25
+    #12 0x555555a921eb in LLVMFuzzerTestOneInput /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/dictionary_stream_round_trip.c:183:30
+    #13 0x555555a94e58 in main /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/regression_driver.c:77:5
+    #14 0x7ffff7a7cd8f in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+    #15 0x7ffff7a7ce3f in __libc_start_main csu/../csu/libc-start.c:392:3
+    #16 0x555555574434 in _start (/home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/dictionary_stream_round_trip+0x20434) (BuildId: a1c45685a274398720af6c152b650ade60fd5a0a)
+
+  Uninitialized value was created by a heap allocation
+    #0 0x5555555a8e20 in malloc (/home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/dictionary_stream_round_trip+0x54e20) (BuildId: a1c45685a274398720af6c152b650ade60fd5a0a)
+    #1 0x55555567c24c in ZSTD_customMalloc /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/../common/allocations.h:30:12
+    #2 0x55555567c24c in ZSTD_cwksp_create /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_cwksp.h:669:23
+    #3 0x55555567c24c in ZSTD_resetCCtx_internal /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:2162:17
+    #4 0x55555565aa11 in ZSTD_compressBegin_internal /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:5095:5
+    #5 0x55555566bf46 in ZSTD_CCtx_init_compressStream2 /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:6246:9
+    #6 0x5555556693a5 in ZSTD_compressStream2 /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:6304:9
+    #7 0x555555a921eb in compress /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/dictionary_stream_round_trip.c:94:25
+    #8 0x555555a921eb in LLVMFuzzerTestOneInput /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/dictionary_stream_round_trip.c:183:30
+    #9 0x555555a94e58 in main /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/regression_driver.c:77:5
+    #10 0x7ffff7a7cd8f in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+
+==2904196==ERROR: AddressSanitizer: Combi-MSan-CVEmode on address 0x7bfff5bdfb60 at pc 0x5555556c63c2 bp 0x7fffffffd610 sp 0x7fffffffd608                                                                   
+READ of size 4 at 0x7bfff5bdfb60 thread T0                                                                                                                                                                  
+    #0 0x5555556c63c1 in ZSTD_assertEqualCParams /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:1897:5                                                             
+    #1 0x5555556c4e7e in ZSTD_buildSeqStore /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:3207:5                                                                  
+    #2 0x5555556ac4a4 in ZSTD_compressBlock_targetCBlockSize /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:4404:24                                                
+    #3 0x5555556ac4a4 in ZSTD_compress_frameChunk /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:4488:25                                                           
+    #4 0x5555556ac4a4 in ZSTD_compressContinue_internal /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:4668:30                                                     
+    #5 0x5555556ba18f in ZSTD_compressContinue_public /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:4692:12                                                       
+    #6 0x5555556ba18f in ZSTD_compressStream_generic /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:6041:29                                                        
+    #7 0x5555556b7cd3 in ZSTD_compressStream2 /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:6364:5                                                                
+    #8 0x5555559012ed in compress /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/dictionary_stream_round_trip.c:94:25                                                                                 
+    #9 0x5555559012ed in LLVMFuzzerTestOneInput /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/dictionary_stream_round_trip.c:183:30                                                                  
+    #10 0x55555590214e in main /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/regression_driver.c:77:5                                                                                                
+    #11 0x7ffff7a68d8f in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16                                                                                                           
+    #12 0x7ffff7a68e3f in __libc_start_main csu/../csu/libc-start.c:392:3                                                                                                                                   
+    #13 0x55555559e614 in _start (/home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/dictionary_stream_round_trip+0x4a614)                                                                                
+                                                                                                                                                                                                            
+Address 0x7bfff5bdfb60 is located in stack of thread T0                                                                                                                                                     
+SUMMARY: AddressSanitizer: Combi-MSan-CVEmode /home/ubuntu/combisan/arvo/66510/src/zstd/tests/fuzz/../../lib/compress/zstd_compress.c:1897:5 in ZSTD_assertEqualCParams                                     
+Shadow bytes around the buggy address:                                                                                                                                                                      
+  0x7bfff5bdfa00: 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55                                                                                                                                           
+  0x7bfff5bdfa40: 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55                                                                                                                                           
+  0x7bfff5bdfa80: 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55                                                                                                                                           
+  0x7bfff5bdfac0: 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55                                                                                                                                           
+  0x7bfff5bdfb00: 55 55 55 55 55 55 55 55 00 00 00 00 00 00 00 55                                                                                                                                           
+=>0x7bfff5bdfb40: 55 55 55 55 55 55 55 55[aa]aa aa aa 00 00 00 55                                                                                                                                           
+  0x7bfff5bdfb80: 55 55 55 55 55 55 55 55 00 00 00 00 00 00 00 00                                                                                                                                           
+  0x7bfff5bdfbc0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00                                                                                                                                           
+  0x7bfff5bdfc00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00                                                                                                                                           
+  0x7bfff5bdfc40: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00                                                                                                                                           
+  0x7bfff5bdfc80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00                                                                                                                                           
+Shadow byte legend (one shadow byte represents 4 application bytes):                                                                                                                                        
+  Addressable (valid):          00                                                                                                                                                                          
+  Fully redzone:                55
+  Fully uninitialized:          aa
+  1 valid 3 redzone:            54
+  2 valid 2 redzone:            50
+  3 valid 1 redzone:            40
+  1 uninit 3 redzone:           56
+  2 uninit 2 redzone:           5a
+  3 uninit 1 redzone:           6a
+  1 valid 3 uninit:             a8
+  2 valid 2 uninit:             a0
+  3 valid 1 uninit:             80

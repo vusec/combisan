@@ -1,0 +1,89 @@
+libxml2 65120   43f658bedd89
+docker cp 43f658bedd89:/src/. ./src
+docker cp 43f658bedd89:/tmp/poc ./poc
+
+
+# CombiSan
+export CC=/home/ubuntu/combisan/llvm-project/build/bin/clang
+export CXX=/home/ubuntu/combisan/llvm-project/build/bin/clang++
+export CFLAGS="-g -O1 -fsanitize=address -fsanitize-recover=address -Wno-error=frame-larger-than -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
+export CXXFLAGS="-g -O1 -fsanitize=address -fsanitize-recover=address -Wno-error=frame-larger-than -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
+export ASAN_OPTIONS="halt_on_error=0"
+
+# MSan
+export CC=clang
+export CXX=clang++
+export CFLAGS="-O1 -fsanitize=memory -fsanitize-memory-track-origins -Wno-error=frame-larger-than -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
+export CXXFLAGS="-O1 -fsanitize=memory -fsanitize-memory-track-origins -Wno-error=frame-larger-than -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
+
+
+sudo apt-get install pkg-config autoconf-archive liblzma-dev
+
+cd src/libfuzzer
+./build.sh
+# out: /home/ubuntu/combisan/arvo/65120/src/libfuzzer/libfuzzer.a
+
+cd src/libxml2
+./autogen.sh     --disable-shared     --without-debug     --without-http     --without-python
+make -j32
+cd fuzz
+make fuzz.o 
+make html.o
+
+mkdir out
+ $CXX $CXXFLAGS \
+        html.o fuzz.o \
+        -o out/html \
+        /home/ubuntu/combisan/arvo/67552/src/libfuzzer/libFuzzer.a \
+        ../.libs/libxml2.a -Wl,-Bstatic -lz -llzma -Wl,-Bdynamic
+./out/html ../../../poc
+
+
+==2909693==WARNING: MemorySanitizer: use-of-uninitialized-value
+    #0 0x5555557f3844 in htmlCurrentChar HTMLparser.c
+    #1 0x5555557fb20b in htmlParseCharData HTMLparser.c
+    #2 0x5555557d91ce in htmlParseContentInternal HTMLparser.c
+    #3 0x5555557dc121 in htmlParseDocument (/home/ubuntu/combisan/arvo/65120/src/libxml2/fuzz/out/html+0x288121) (BuildId: 6066c0fc9168f4fd240ef7e544bcc6b82fd9e655)
+    #4 0x5555557ef4c9 in htmlDoRead HTMLparser.c
+    #5 0x5555557f0bdd in htmlCtxtReadMemory (/home/ubuntu/combisan/arvo/65120/src/libxml2/fuzz/out/html+0x29cbdd) (BuildId: 6066c0fc9168f4fd240ef7e544bcc6b82fd9e655)
+    #6 0x555555614ee7 in LLVMFuzzerTestOneInput (/home/ubuntu/combisan/arvo/65120/src/libxml2/fuzz/out/html+0xc0ee7) (BuildId: 6066c0fc9168f4fd240ef7e544bcc6b82fd9e655)
+    #7 0x55555562fc88 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /home/ubuntu/combisan/arvo/67552/src/libfuzzer/./FuzzerLoop.cpp:611:15
+    #8 0x555555619072 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /home/ubuntu/combisan/arvo/67552/src/libfuzzer/./FuzzerDriver.cpp:324:6
+    #9 0x55555561e701 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /home/ubuntu/combisan/arvo/67552/src/libfuzzer/./FuzzerDriver.cpp:860:9
+    #10 0x555555618d62 in main /home/ubuntu/combisan/arvo/67552/src/libfuzzer/./FuzzerMain.cpp:20:10
+    #11 0x7ffff7a7cd8f in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+    #12 0x7ffff7a7ce3f in __libc_start_main csu/../csu/libc-start.c:392:3
+    #13 0x55555558cb54 in _start (/home/ubuntu/combisan/arvo/65120/src/libxml2/fuzz/out/html+0x38b54) (BuildId: 6066c0fc9168f4fd240ef7e544bcc6b82fd9e655)
+
+  Uninitialized value was created by a heap deallocation
+    #0 0x5555555c1286 in __interceptor_realloc (/home/ubuntu/combisan/arvo/65120/src/libxml2/fuzz/out/html+0x6d286) (BuildId: 6066c0fc9168f4fd240ef7e544bcc6b82fd9e655)
+    #1 0x55555561592b in xmlFuzzRealloc fuzz.c
+
+
+
+READ of size 1 at 0x7e4ff6ee37a8 thread T0
+    #0 0x5555557de958 in htmlCurrentChar /home/ubuntu/combisan/arvo/65120/src/libxml2/HTMLparser.c:427:9
+    #1 0x5555557e3003 in htmlParseCharDataInternal /home/ubuntu/combisan/arvo/65120/src/libxml2/HTMLparser.c:3185:8
+    #2 0x5555557e3003 in htmlParseCharData /home/ubuntu/combisan/arvo/65120/src/libxml2/HTMLparser.c:3224:5
+    #3 0x5555557ceebf in htmlParseContentInternal /home/ubuntu/combisan/arvo/65120/src/libxml2/HTMLparser.c:4768:13
+    #4 0x5555557d144f in htmlParseDocument /home/ubuntu/combisan/arvo/65120/src/libxml2/HTMLparser.c:4881:5
+    #5 0x5555557dcbc7 in htmlDoRead /home/ubuntu/combisan/arvo/65120/src/libxml2/HTMLparser.c:6435:5
+    #6 0x5555556c343b in LLVMFuzzerTestOneInput /home/ubuntu/combisan/arvo/65120/src/libxml2/fuzz/html.c:48:15
+    #7 0x5555556dc188 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /home/ubuntu/combisan/arvo/67552/src/libfuzzer/./FuzzerLoop.cpp:611:15
+    #8 0x5555556c5572 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /home/ubuntu/combisan/arvo/67552/src/libfuzzer/./FuzzerDriver.cpp:324:6
+    #9 0x5555556cac01 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /home/ubuntu/combisan/arvo/67552/src/libfuzzer/./FuzzerDriver.cpp:860:9
+    #10 0x5555556c5262 in main /home/ubuntu/combisan/arvo/67552/src/libfuzzer/./FuzzerMain.cpp:20:10
+    #11 0x7ffff7a68d8f in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+    #12 0x7ffff7a68e3f in __libc_start_main csu/../csu/libc-start.c:392:3
+    #13 0x5555555e2be4 in _start (/home/ubuntu/combisan/arvo/65120/src/libxml2/fuzz/out/html+0x8ebe4)
+
+0x7e4ff6ee37a8 is located 3752 bytes inside of 8193-byte region [0x7e4ff6ee2900,0x7e4ff6ee4901)
+freed by thread T0 here:
+    #0 0x555555688ea2 in asan_realloc_uninit /home/ubuntu/combisan/llvm-project/compiler-rt/lib/asan/asan_rtl.cpp:766:3
+    #1 0x5555556c3807 in xmlFuzzRealloc /home/ubuntu/combisan/arvo/65120/src/libxml2/fuzz/fuzz.c:96:12
+
+previously allocated by thread T0 here:
+    #0 0x555555688cad in asan_malloc_uninit /home/ubuntu/combisan/llvm-project/compiler-rt/lib/asan/asan_rtl.cpp:756:3
+    #1 0x5555556c37b7 in xmlFuzzMalloc /home/ubuntu/combisan/arvo/65120/src/libxml2/fuzz/fuzz.c:81:12
+
+

@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+import subprocess as sp
+
+extra_args = []
+with open("/home/ubuntu/swiftsan/cves/fakepath/args.txt", "r") as f:
+  for line in f.readlines():
+    extra_args.append(line.strip())
+
+original_args = []
+
+prev = ""
+for arg in sys.argv[1:]:
+  prev = arg
+
+  if arg.endswith(".lo"):
+    arg = arg[:-2] + "o"
+
+  original_args.append(arg)
+
+libs_to_fake = [".libs/libtiff.so.5.2.5", ".libs/libtiffxx.so.5.2.5",
+                ".libs/libpcre2-8.so.0.5.0", ".libs/libpcre2-32.so.0.5.0", ".libs/libpcre2-posix.so.1.0.1",
+                ".libs/libsixel.so.1.0.6",
+                "libmxml.so.1.6",
+                ".libs/libtiff.so.3.8.2",
+                ".libs/libtiff.so.5.0.6",
+                ".libs/libtiffxx.so.5.0.6",
+                ".libs/libzip.so.5.0.0",
+                ".libs/zzipwrap", ".libs/libzzipwrap-0.so.13.0.62",
+                ".libs/libzzipfseeko-0.so.13.0.62",
+                ".libs/libzzipmmapped-0.so.13.0.62",
+                ".libs/libzzip-0.so.13.0.62"
+                ]
+
+
+#if "-o " in " ".join(original_args):
+#    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~ ", original_args)
+
+for fake_lib in libs_to_fake:
+  if ("-o " + fake_lib) in " ".join(original_args):
+    ar_args = ["/home/ubuntu/swiftsan/llvm-16.0.6/bin/llvm-ar", "rc", fake_lib]
+
+    for arg in original_args:
+      if arg.endswith(".o"):
+        ar_args.append(arg)
+    sys.exit(sp.call(ar_args))
+
+if "-shared" in original_args:
+  original_args.remove("-shared")
+  original_args.append("-c")
+
+target_cc = "/home/ubuntu/swiftsan/llvm-16.0.6/bin/clang"
+if sys.argv[0].endswith("++"):
+  target_cc += "++"
+
+full_cmd = [target_cc] + original_args + extra_args
+
+#print(" ".join(full_cmd))
+
+sys.exit(sp.call(full_cmd))

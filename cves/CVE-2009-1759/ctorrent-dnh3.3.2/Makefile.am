@@ -1,0 +1,2 @@
+bin_PROGRAMS = ctorrent
+ctorrent_SOURCES = bencode.cpp bitfield.cpp btconfig.cpp btcontent.cpp btfiles.cpp btrequest.cpp btstream.cpp bufio.cpp compat.c connect_nonb.cpp console.cpp ctcs.cpp ctorrent.cpp downloader.cpp httpencode.cpp iplist.cpp peer.cpp peerlist.cpp rate.cpp setnonblock.cpp sigint.cpp tracker.cpp sha1.c bencode.h bitfield.h btconfig.h btcontent.h btfiles.h btrequest.h btstream.h bttime.h bufio.h compat.h connect_nonb.h console.h ctcs.h def.h downloader.h httpencode.h iplist.h msgencode.h peer.h peerlist.h rate.h setnonblock.h sigint.h tracker.h sha1.h
