@@ -6,7 +6,7 @@ This file contains extensive instructions for performing the artifact evaluation
 
 To test CombiSan, make sure you installed the dependencies:
 ```
-sudo apt install gcc g++ cmake ninja-build docker
+sudo apt install gcc g++ cmake ninja-build docker unzip python3-terminaltables
 ```
 Please note how Docker's package name may vary depending on your OS version and package manager (e.g., `docker.io` for some versions of Ubuntu, or `sudo snap install docker` on snap)
 
