@@ -185,7 +185,7 @@ Please use the tags we suggest here for the docker images (i.e., `combisan` and 
 All the targets we used (from both OSS-Fuzz and FTS, with the versions we used) can be compiled using commands similar to the one described above. For example, to compile `libxml2` from FTS:
 
 ```
-cd docker/libxml2/libxml2_combisan/ 
+cd docker/fts/libxml2/libxml2_combisan/ 
 docker build -t libxml2_combisan .
 ```
 
