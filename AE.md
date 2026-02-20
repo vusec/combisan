@@ -213,5 +213,11 @@ Three targets from FTS (`libxml2`, `pcre2`, and `re2`) contain an additional dir
 ```
 $AFL/afl-fuzz -i crashes -o out -m none -- $EXECUTABLE_NAME_BASE
 ```
-And checking the AFL++'s output to see how ASan bugs are always treated as crashes, while MSan bugs depend on violations, and UBSan bugs are only treated as crashes the first time they are detected.
 
+In this particular experiment, checking the early AFL++ log (i.e., before the main UI appears) already reveals how deferred execution works. After executing the fuzzing command, we can interrupt it as soon as the main UI appears (e.g., through ctrl+c). inspecting the portion of the output related to the "dry runs". Dry runs are executions the fuzzer performs with initial seeds (crashing seeds, in this case) before it starts mutating them; these executions are identical to the executions that happen during the rest of fuzzing. We can find information about these runs after the relevant debug logs, e.g., "[*] Attempting dry run with 'id:000000,time:0,execs:0,orig:asan'...", which in this case means that the first dry run is being performed on an input called "asan". For `libxml2`, the `crashes/` directory provides 6 crashing inputs, two duplicates of the same input for each sanitizer (ASan, MSan, and UBSan); using duplicates here is helpful to show what happens when two executions with an identical profile (with respect to bug detection) are produced, depending on the triggered bug(s). The output then shows:
+
+- Both ASan-relevant inputs trigger a crash.
+- Only the first MSan-relevant input triggers a crash.
+- Only the first UBSan-relevant input triggers a crash.
+
+This is consistent with how deferred mode is designed: addressability issues (i.e., "ASan bugs") always trigger a crash, loads of uninitialized memory only trigger a slow check (through the accurate detector) when a new violation is triggered, while UB bugs trigger a crash only the first time they are encountered.
